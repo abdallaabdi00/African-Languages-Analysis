@@ -1,0 +1,312 @@
+---
+title: "African Languages: A Statistical Overview"
+author: "Abdallah Ramadhan"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(patchwork)
+```
+
+```{r define-theme, include=FALSE}
+theme_african <- theme_minimal() +
+  theme(
+    plot.title    = element_text(size = 13, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 10, hjust = 0.5, color = "grey40"),
+    plot.caption  = element_text(size = 8, hjust = 1, color = "grey50"),
+    axis.title    = element_text(size = 10),
+    axis.text     = element_text(size = 9),
+    panel.grid.minor = element_blank(),
+    plot.margin   = margin(15, 15, 15, 15)
+  )
+
+africa_colours <- c(
+  "Niger–Congo"              = "#E07B39",
+  "Nilo-Saharan"             = "#4A90A4",
+  "Afroasiatic"              = "#C0392B",
+  "Indo-European"            = "#7D3C98",
+  "Khoe–Kwadi"               = "#27AE60",
+  "Kxʼa"                     = "#2ECC71",
+  "Ubangian"                 = "#F39C12",
+  "Tuu"                      = "#1ABC9C",
+  "Austronesian"             = "#3498DB",
+  "Kongo-Creole/Pidgin"      = "#E74C3C",
+  "Arabic-Creole/Pidgin"     = "#D4AC0D",
+  "English-Creole/Pidgin"    = "#85929E",
+  "French-Creole/Pidgin"     = "#5D6D7E",
+  "Portuguese-Creole/Pidgin" = "#A04000"
+)
+```
+
+## 1. Introduction
+
+Africa is the world's most linguistically diverse continent, home to an
+estimated 2,000 languages spanning dozens of distinct language families.
+This report analyses a dataset of 502 African languages across 51 countries,
+exploring three core questions:
+
+- Which country in Africa has the largest number of spoken languages?
+- Which language family has the highest density of speakers?
+- Are there languages that cut across multiple countries?
+
+---
+
+## 2. Data Preparation
+
+The dataset was loaded from a CSV file containing 796 rows and 4 variables:
+`language`, `family`, `native_speakers`, and `country`.
+
+### 2.1 Loading the Data
+
+```{r load-data}
+data <- read_csv("../data/africa_languages.csv",
+                 locale = locale(encoding = "UTF-8"))
+glimpse(data)
+```
+
+### 2.2 Data Quality Issues Identified
+
+Before analysis, the following issues were identified and resolved:
+
+| Issue | Action Taken |
+|---|---|
+| Mojibake encoding errors in language names | Fixed by loading with UTF-8 encoding |
+| `Afro-Asiatic` spelling inconsistency | Standardised to `Afroasiatic` |
+| `Shabo` misclassified as `Language` family | Reclassified to `Nilo-Saharan` |
+| `Bozo` listed under `Mande` | Moved to `Niger-Congo` |
+| 9 creole/pidgin languages mislabelled | Reclassified under respective Creole/Pidgin families |
+| 36 duplicate rows (same language, same country) | Removed using `distinct()` |
+
+### 2.3 Cleaning Code
+
+```{r clean-data}
+data_clean <- data %>%
+  mutate(family = case_when(
+    language == "Shabo"                  ~ "Nilo-Saharan",
+    language == "Bozo"                   ~ "Niger\u2013Congo",
+    language == "Kituba"                 ~ "Kongo-Creole/Pidgin",
+    language == "Nubi"                   ~ "Arabic-Creole/Pidgin",
+    language == "Krio"                   ~ "English-Creole/Pidgin",
+    language == "Pichinglis"             ~ "English-Creole/Pidgin",
+    language == "Mauritian Creole"       ~ "French-Creole/Pidgin",
+    language == "Seychellois Creole"     ~ "French-Creole/Pidgin",
+    language == "Cape Verdean Creole"    ~ "Portuguese-Creole/Pidgin",
+    family   == "Afro-Asiatic"           ~ "Afroasiatic",
+    TRUE ~ family
+  )) %>%
+  distinct(language, country, .keep_all = TRUE)
+```
+
+### 2.4 Final Dataset Summary
+
+```{r summary}
+data_clean %>%
+  summarise(
+    total_rows       = n(),
+    unique_languages = n_distinct(language),
+    unique_countries = n_distinct(country),
+    unique_families  = n_distinct(family)
+  )
+```
+
+---
+
+## 3. Exploratory Data Analysis
+
+### 3.1 Distribution of Native Speakers
+
+The `native_speakers` variable is heavily right-skewed, with a median of
+150,000 but a mean of nearly 5 million — driven by a small number of
+languages with massive speaker bases like Arabic and Swahili.
+
+```{r distribution}
+summary(data_clean$native_speakers)
+```
+
+A log transformation normalises the distribution and is used throughout
+this analysis for visualisation and comparison purposes.
+
+```{r log-histogram, fig.width=8, fig.height=4}
+data_clean %>%
+  mutate(log_speakers = log10(native_speakers)) %>%
+  ggplot(aes(x = log_speakers)) +
+  geom_histogram(bins = 15, fill = "steelblue", color = "white") +
+  labs(
+    title = "Distribution of Native Speakers (Log10 Scale)",
+    x     = "Log10(Native Speakers)",
+    y     = "Count"
+  ) +
+  theme_african
+```
+
+---
+
+## 4. Research Findings
+
+### 4.1 Which Country Has the Most Languages?
+
+```{r chart1, fig.width=9, fig.height=6}
+p1 <- data_clean %>%
+  group_by(country) %>%
+  summarise(num_languages = n_distinct(language)) %>%
+  arrange(desc(num_languages)) %>%
+  slice_head(n = 10) %>%
+  ggplot(aes(x = reorder(country, num_languages), y = num_languages)) +
+  geom_col(fill = "#E07B39", width = 0.7) +
+  geom_text(aes(label = num_languages),
+            hjust = -0.2, size = 3.5, fontface = "bold") +
+  coord_flip() +
+  scale_y_continuous(limits = c(0, 110)) +
+  labs(
+    title    = "Top 10 African Countries by Number of Languages",
+    subtitle = "Cameroon leads with extraordinary linguistic diversity",
+    x        = NULL,
+    y        = "Number of Languages",
+    caption  = "Source: African Languages Dataset"
+  ) +
+  theme_african
+p1
+```
+
+Cameroon leads with **95 languages**, followed by Congo (79) and
+Nigeria (73). Cameroon's extraordinary diversity reflects its position
+at the intersection of West and Central African linguistic zones,
+earning it the nickname *"Africa in miniature"*. For organisations
+working in education, health communication or community development,
+this concentration of diversity means multilingual programming is not
+optional — it is essential.
+
+### 4.2 Which Language Family Has the Highest Speaker Density?
+
+```{r family-table}
+data_clean %>%
+  group_by(family) %>%
+  summarise(
+    `Number of Languages` = n_distinct(language),
+    `Median Speakers`     = scales::comma(median(native_speakers)),
+    `Total Speakers`      = scales::comma(sum(native_speakers))
+  ) %>%
+  arrange(desc(`Number of Languages`)) %>%
+  knitr::kable(caption = "Language Family Statistics")
+```
+
+```{r chart3, fig.width=9, fig.height=7}
+p3 <- data_clean %>%
+  ggplot(aes(x = reorder(family, native_speakers, median),
+             y = native_speakers,
+             fill = family)) +
+  geom_boxplot(show.legend = FALSE, alpha = 0.8) +
+  scale_y_log10(labels = scales::comma) +
+  scale_fill_manual(values = africa_colours) +
+  coord_flip() +
+  labs(
+    title    = "Native Speaker Distribution by Language Family",
+    subtitle = "Log scale — showing spread and outliers within each family",
+    x        = NULL,
+    y        = "Native Speakers (log scale)",
+    caption  = "Source: African Languages Dataset"
+  ) +
+  theme_african
+p3
+```
+
+The answer depends on the metric used. **Afroasiatic** has the highest
+median speakers per language (~22 million), driven by Arabic.
+**Niger-Congo** contains the most languages (384) but most are small
+communities, with a median of only 135,000 speakers — revealing a
+striking paradox between linguistic diversity and speaker density.
+
+### 4.3 Which Languages Span Multiple Countries?
+
+```{r chart2, fig.width=10, fig.height=7}
+p2 <- data_clean %>%
+  group_by(language) %>%
+  summarise(
+    num_countries = n_distinct(country),
+    family        = first(family)
+  ) %>%
+  filter(num_countries > 1) %>%
+  arrange(desc(num_countries)) %>%
+  slice_head(n = 15) %>%
+  ggplot(aes(x = reorder(language, num_countries),
+             y = num_countries,
+             fill = family)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = num_countries),
+            hjust = -0.2, size = 3.5, fontface = "bold") +
+  coord_flip() +
+  scale_fill_manual(values = africa_colours) +
+  scale_y_continuous(limits = c(0, 14)) +
+  labs(
+    title    = "Most Widespread African Languages",
+    subtitle = "Top 15 languages by number of countries spanned",
+    x        = NULL,
+    y        = "Number of Countries",
+    fill     = "Language Family",
+    caption  = "Source: African Languages Dataset"
+  ) +
+  theme_african +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 8))
+p2
+```
+
+Of 502 languages, **155 (31%) span more than one country**. Arabic is
+the most widespread at 12 countries, followed by Fulani at 10.
+Notably, **347 languages (69%) are endemic to a single country** —
+confined to one national context with no cross-border community to
+sustain them. These languages are the most vulnerable to extinction
+through policy neglect and demographic change.
+
+> **For NGO programming:** Endemic languages warrant priority attention
+> in cultural preservation, mother-tongue education, and community
+> documentation initiatives.
+
+---
+
+## 5. Conclusion
+
+This analysis reveals three defining features of African linguistic
+diversity:
+
+1. **Concentration of diversity** — Cameroon, Congo and Nigeria together
+account for a disproportionate share of the continent's languages.
+Organisations operating in these countries face the most complex
+multilingual environments on the continent.
+
+2. **The Niger-Congo paradox** — The largest family by language count
+contains mostly small, localised communities with limited institutional
+support. Scale of diversity does not translate to security of survival.
+
+3. **Endemic fragility** — 69% of languages are confined to a single
+country, highlighting the vulnerability of Africa's linguistic heritage
+and the urgency of preservation efforts.
+
+### Recommendations for Further Analysis
+
+- Incorporate **language endangerment status** data from UNESCO to
+identify which endemic languages are most at risk
+- Map languages geographically to identify border communities split
+by colonial boundaries
+- Cross-reference with **education policy data** to assess which
+languages have formal recognition in school systems
+
+### Limitations
+
+- Speaker counts represent a single point in time and may be outdated
+- The dataset may not be exhaustive — some estimates put Africa's
+languages at over 2,000
+- Creole/Pidgin classification required manual research and judgement calls
+
+---
+
+*Report generated using R `r getRversion()` and
+tidyverse `r packageVersion("tidyverse")`*
