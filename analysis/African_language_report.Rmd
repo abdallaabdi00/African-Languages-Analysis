@@ -1,4 +1,4 @@
----
+﻿---
 title: "African Languages: A Statistical Overview"
 author: "Abdallah Ramadhan"
 date: "`r Sys.Date()`"
@@ -29,12 +29,12 @@ theme_african <- theme_minimal() +
   )
 
 africa_colours <- c(
-  "Niger–Congo"              = "#E07B39",
+  "Niger-Congo"              = "#E07B39",
   "Nilo-Saharan"             = "#4A90A4",
   "Afroasiatic"              = "#C0392B",
   "Indo-European"            = "#7D3C98",
-  "Khoe–Kwadi"               = "#27AE60",
-  "Kxʼa"                     = "#2ECC71",
+  "Khoe-Kwadi"               = "#27AE60",
+  "Kxa"                     = "#2ECC71",
   "Ubangian"                 = "#F39C12",
   "Tuu"                      = "#1ABC9C",
   "Austronesian"             = "#3498DB",
@@ -66,7 +66,7 @@ The dataset was loaded from a CSV file containing 796 rows and 4 variables:
 
 ### 2.1 Loading the Data
 
-```{r load-data}
+```{r load-data, include=FALSE}
 data <- read_csv("../data/africa_languages.csv",
                  locale = locale(encoding = "UTF-8"))
 glimpse(data)
@@ -91,7 +91,7 @@ Before analysis, the following issues were identified and resolved:
 data_clean <- data %>%
   mutate(family = case_when(
     language == "Shabo"                  ~ "Nilo-Saharan",
-    language == "Bozo"                   ~ "Niger\u2013Congo",
+    language == "Bozo"                   ~ "Niger-Congo",
     language == "Kituba"                 ~ "Kongo-Creole/Pidgin",
     language == "Nubi"                   ~ "Arabic-Creole/Pidgin",
     language == "Krio"                   ~ "English-Creole/Pidgin",
@@ -310,3 +310,5 @@ languages at over 2,000
 
 *Report generated using R `r getRversion()` and
 tidyverse `r packageVersion("tidyverse")`*
+
+

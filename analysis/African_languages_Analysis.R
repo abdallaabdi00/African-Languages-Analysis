@@ -1,4 +1,4 @@
-library(tidyverse)
+﻿library(tidyverse)
 library(patchwork)
 
 data <- read_csv("data/africa_languages.csv", locale = locale(encoding = "UTF-8"))
@@ -19,12 +19,9 @@ theme_african <- theme_minimal() +
 # Data Cleaning Phase -----------------------------------------------------
 
 
-#checking if the data is uploaded while maintaining the original format of the language names
+# Check selected language names after loading the dataset.
 data %>% 
-  filter(language %in% c("Buru-Angwe","ǂKxʼaoǁʼae", "Bomboli–Bozaba",
-                         "Ekoka ǃKung","Feʼfeʼ","Ghomalaʼ","Gourmanché",
-                         "Juǀʼhoan","Kwaʼ","Mbəʼ","Mooré","Nanerigé",
-                         "Ndaʼndaʼ","Ngaʼka","Oluʼbo")) %>% 
+  filter(language %in% c("Buru-Angwe", "Bomboli-Bozaba")) %>% 
   select(language,family,country)
 
 data %>% 
@@ -42,7 +39,7 @@ data %>%
 data_clean<- data %>% 
   mutate(family=case_when(
     language=="Shabo" ~ "Nilo-Saharan",
-    language=="Bozo" ~ "Niger–Congo",
+    language=="Bozo" ~ "Niger-Congo",
     language=="Kituba" ~ "Kongo-Creole/Pidgin",
     language=="Nubi" ~ "Arabic-Creole/Pidgin",
     language=="Juba Arabic" ~ "Arabic-Creole/Pidgin",
@@ -257,12 +254,12 @@ data_clean %>%
 
 # African-inspired colour palette
 africa_colours <- c(
-  "Niger–Congo"              = "#E07B39",  # warm orange
+  "Niger-Congo"              = "#E07B39",  # warm orange
   "Nilo-Saharan"             = "#4A90A4",  # steel blue
   "Afroasiatic"              = "#C0392B",  # deep red
   "Indo-European"            = "#7D3C98",  # purple
-  "Khoe–Kwadi"               = "#27AE60",  # green
-  "Kxʼa"                     = "#2ECC71",  # light green
+  "Khoe-Kwadi"               = "#27AE60",  # green
+  "Kxa"                     = "#2ECC71",  # light green
   "Ubangian"                 = "#F39C12",  # amber
   "Tuu"                      = "#1ABC9C",  # teal
   "Austronesian"             = "#3498DB",  # blue
@@ -369,6 +366,7 @@ combined_plot <- p1 / p2 / p3 +
 ggsave("figures/african_languages_overview.png", 
        combined_plot, 
        width = 12, height = 18, dpi = 300)
+
 
 
 
